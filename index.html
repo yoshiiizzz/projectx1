@@ -1,49 +1,87 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ESP32 GPIO Controller</title>
+  <title>Rain Detector IoT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<link rel="stylesheet" href="styles.css">
-<script type="module" src="app.js"></script>
+  <style>
+    body {
+      font-family: Arial;
+      text-align: center;
+      background: #f0f0f0;
+    }
 
+    .card {
+      background: white;
+      padding: 20px;
+      margin: 20px auto;
+      width: 300px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .btn-open { background: #4CAF50; color: white; }
+    .btn-close { background: #f44336; color: white; }
+  </style>
 </head>
 
 <body>
 
-<div class="card">
+  <h1>🌧️ Rain Detector IoT</h1>
 
-  <h1>ESP32 GPIO Control</h1>
-  <div id="statusBadge" class="status-badge offline">Offline</div>
-
-  <!-- Login UI -->
-  <div id="authBox">
-    <input id="emailField" type="email" placeholder="Email" />
-    <input id="passwordField" type="password" placeholder="Password" />
-    <button id="loginBtn" class="btn login-btn">Login</button>
-    <p id="authMsg"></p>
+  <div class="card">
+    <h2>Status Hujan</h2>
+    <p id="status">Loading...</p>
   </div>
 
-  <!-- Control UI -->
-  <div id="controlBox" style="display:none;">
-
-    <button id="gpio1Btn" class="gpio-button" data-gpio="gpio1">GPIO 1</button>
-    <div id="gpio1Status" class="gpio-status">Status: OFF</div>
-
-    <button id="gpio2Btn" class="gpio-button" data-gpio="gpio2">GPIO 2</button>
-    <div id="gpio2Status" class="gpio-status">Status: OFF</div>
-
-    <button id="gpio3Btn" class="gpio-button" data-gpio="gpio3">GPIO 3</button>
-    <div id="gpio3Status" class="gpio-status">Status: OFF</div>
-
-    <button id="logoutBtn" class="btn logout-btn">Logout</button>
+  <div class="card">
+    <h2>Kontrol Jemuran</h2>
+    <button class="btn-close" onclick="tutup()">Tutup</button>
+    <button class="btn-open" onclick="buka()">Buka</button>
   </div>
 
-</div>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase.js"></script>
 
-<!-- JS + Firebase Integrated -->
+  <script>
+    // 🔥 GANTI INI
+    var firebaseConfig = {
+      apiKey: "API_KEY_KAMU",
+      databaseURL: "https://PROJECT-ID-default-rtdb.firebaseio.com/"
+    };
 
+    firebase.initializeApp(firebaseConfig);
+    var db = firebase.database();
+
+    // 📡 Ambil status hujan realtime
+    db.ref("sensor/rain").on("value", function(snapshot) {
+      var val = snapshot.val();
+
+      if (val == 0) {
+        document.getElementById("status").innerHTML = "🌧️ HUJAN";
+      } else {
+        document.getElementById("status").innerHTML = "☀️ TIDAK HUJAN";
+      }
+    });
+
+    // 🎛️ Tombol kontrol
+    function tutup() {
+      db.ref("control/servo").set(1);
+    }
+
+    function buka() {
+      db.ref("control/servo").set(0);
+    }
+  </script>
 
 </body>
 </html>
