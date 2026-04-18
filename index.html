@@ -6,22 +6,40 @@
 
   <style>
     body {
-      font-family: Arial;
+      font-family: Arial, sans-serif;
       text-align: center;
-      background: #f0f0f0;
+      background: #eef2f3;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1 {
+      background: #2196F3;
+      color: white;
+      padding: 15px;
+      margin: 0;
+    }
+
+    .container {
+      margin-top: 30px;
     }
 
     .card {
       background: white;
       padding: 20px;
-      margin: 20px auto;
+      margin: 15px auto;
       width: 300px;
       border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    #status {
+      font-size: 20px;
+      font-weight: bold;
     }
 
     button {
-      padding: 10px 20px;
+      padding: 12px 20px;
       margin: 10px;
       font-size: 16px;
       border: none;
@@ -29,14 +47,28 @@
       cursor: pointer;
     }
 
-    .btn-open { background: #4CAF50; color: white; }
-    .btn-close { background: #f44336; color: white; }
+    .btn-open {
+      background: #4CAF50;
+      color: white;
+    }
+
+    .btn-close {
+      background: #f44336;
+      color: white;
+    }
+
+    .mode-btn {
+      background: #555;
+      color: white;
+    }
   </style>
 </head>
 
 <body>
 
-  <h1>🌧️ Rain Detector IoT</h1>
+<h1>🌧️ Rain Detector IoT</h1>
+
+<div class="container">
 
   <div class="card">
     <h2>Status Hujan</h2>
@@ -49,39 +81,58 @@
     <button class="btn-open" onclick="buka()">Buka</button>
   </div>
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase.js"></script>
+  <div class="card">
+    <h2>Mode</h2>
+    <button class="mode-btn" onclick="setAuto()">AUTO</button>
+    <button class="mode-btn" onclick="setManual()">MANUAL</button>
+  </div>
 
-  <script>
-    // 🔥 GANTI INI
-    var firebaseConfig = {
-      apiKey: "AIzaSyCIJXQ7NSAPnLxRh34_zhcd5-q5buP_fKQ",
-      databaseURL: "https://projectx1-72726-default-rtdb.asia-southeast1.firebasedatabase.app"
-    };
+</div>
 
-    firebase.initializeApp(firebaseConfig);
-    var db = firebase.database();
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase.js"></script>
 
-    // 📡 Ambil status hujan realtime
-    db.ref("sensor/rain").on("value", function(snapshot) {
-      var val = snapshot.val();
+<script>
+  // 🔥 GANTI SESUAI FIREBASE KAMU
+  var firebaseConfig = {
+    apiKey: "API_KEY_KAMU",
+    databaseURL: "https://PROJECT-ID-default-rtdb.firebaseio.com/"
+  };
 
-      if (val == 0) {
-        document.getElementById("status").innerHTML = "🌧️ HUJAN";
-      } else {
-        document.getElementById("status").innerHTML = "☀️ TIDAK HUJAN";
-      }
-    });
+  firebase.initializeApp(firebaseConfig);
+  var db = firebase.database();
 
-    // 🎛️ Tombol kontrol
-    function tutup() {
-      db.ref("control/servo").set(1);
+  // 📡 STATUS HUJAN REALTIME
+  db.ref("sensor/rain").on("value", function(snapshot) {
+    var val = snapshot.val();
+
+    if (val == 0) {
+      document.getElementById("status").innerHTML = "🌧️ HUJAN";
+      document.body.style.background = "#cce7ff";
+    } else {
+      document.getElementById("status").innerHTML = "☀️ TIDAK HUJAN";
+      document.body.style.background = "#eef2f3";
     }
+  });
 
-    function buka() {
-      db.ref("control/servo").set(0);
-    }
-  </script>
+  // 🎛️ KONTROL SERVO
+  function tutup() {
+    db.ref("control/servo").set(1);
+  }
+
+  function buka() {
+    db.ref("control/servo").set(0);
+  }
+
+  // 🔁 MODE
+  function setAuto() {
+    db.ref("control/mode").set("auto");
+  }
+
+  function setManual() {
+    db.ref("control/mode").set("manual");
+  }
+</script>
 
 </body>
 </html>
