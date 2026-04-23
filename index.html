@@ -1,38 +1,146 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-  <title>Rain Detector IoT</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Jemuran Pintar IoT</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Roboto', sans-serif; background-color: #f4f7f6; }
+        .card { border-radius: 15px; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .status-val { font-size: 1.5rem; font-weight: bold; }
+        .header-bg { background: linear-gradient(135deg, #007bff, #00d4ff); color: white; padding: 20px; border-radius: 0 0 20px 20px; }
+    </style>
 </head>
-
 <body>
 
-<h1>🌧️ Rain Detector IoT</h1>
-
-<div class="card">
-  <h2>Status Hujan</h2>
-  <p id="status">Loading...</p>
+<div class="header-bg text-center">
+    <h1>Jemuran Pintar IoT</h1>
+    <p>Monitoring & Kontrol Jarak Jauh</p>
 </div>
 
-<div class="card">
-  <h2>Kontrol Jemuran</h2>
-  <button onclick="tutup()">Tutup</button>
-  <button onclick="buka()">Buka</button>
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card p-4">
+                <h5 class="text-secondary">Monitoring</h5>
+                <hr>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span>Kondisi Cuaca:</span>
+                    <span id="txt_hujan" class="status-val text-primary">Loading...</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span>Status Jemuran:</span>
+                    <span id="txt_jemuran" class="status-val text-success">Loading...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card p-4 text-center">
+                <h5 class="text-secondary">Kontrol Manual</h5>
+                <hr>
+                <div class="mb-3">
+                    <button id="btn_kontrol" class="btn btn-lg btn-outline-primary w-100">Toggle Jemuran</button>
+                    <small class="text-muted">Klik untuk Buka/Tutup secara paksa</small>
+                </div>
+                <div>
+                    <button id="btn_buzzer" class="btn btn-lg btn-outline-danger w-100">Bunyikan Buzzer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card p-4">
+                <h5 class="text-secondary">Pengaturan Jadwal Otomatis</h5>
+                <hr>
+                <div class="row g-3 align-items-center">
+                    <div class="col-auto">
+                        <label>Waktu Buka:</label>
+                        <input type="time" id="input_buka" class="form-control">
+                    </div>
+                    <div class="col-auto">
+                        <label>Waktu Tutup:</label>
+                        <input type="time" id="input_tutup" class="form-control">
+                    </div>
+                    <div class="col-auto mt-4">
+                        <button id="btn_save_time" class="btn btn-success">Simpan Jadwal</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-<div class="card">
-  <h2>Mode</h2>
-  <button onclick="setAuto()">AUTO</button>
-  <button onclick="setManual()">MANUAL</button>
-</div>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase.js"></script>
+<script>
+    // --- GANTI DENGAN CONFIG FIREBASE KAMU ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyCIJXQ7NSAPnLxRh34_zhcd5-q5buP_fKQ",
+      authDomain: "projectx1-72726.firebaseapp.com",
+      databaseURL: "https://projectx1-72726-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "projectx1-72726",
+      storageBucket: "projectx1-72726.firebasestorage.app",
+      messagingSenderId: "942733522841",
+      appId: "1:942733522841:web:e508544e166554ee274508"
+    };
+    // ----------------------------------------
 
-<!-- Script -->
-<script src="script.js"></script>
+    // Inisialisasi Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database().ref("Jemuran_Pintar");
+
+    // 1. Ambil Data Real-time (Monitoring)
+    db.on('value', (snapshot) => {
+        const data = snapshot.val();
+        
+        // Update UI Monitoring
+        document.getElementById("txt_hujan").innerText = data.kondisi_hujan ? "HUJAN" : "CERAH";
+        document.getElementById("txt_hujan").className = data.kondisi_hujan ? "status-val text-danger" : "status-val text-primary";
+        
+        document.getElementById("txt_jemuran").innerText = data.status_jemuran;
+        
+        // Update Warna Tombol berdasarkan kontrol_manual
+        const btnK = document.getElementById("btn_kontrol");
+        btnK.innerText = data.kontrol_manual ? "MATIKAN MANUAL (AUTO)" : "AKTIFKAN MANUAL";
+        btnK.className = data.kontrol_manual ? "btn btn-lg btn-primary w-100" : "btn btn-lg btn-outline-primary w-100";
+
+        const btnB = document.getElementById("btn_buzzer");
+        btnB.innerText = data.buzzer_manual ? "MATIKAN BUZZER" : "BUNYIKAN BUZZER";
+        btnB.className = data.buzzer_manual ? "btn btn-lg btn-danger w-100" : "btn btn-lg btn-outline-danger w-100";
+
+        // Update Nilai Input Waktu
+        document.getElementById("input_buka").value = data.waktu_buka;
+        document.getElementById("input_tutup").value = data.waktu_tutup;
+    });
+
+    // 2. Kontrol Tombol
+    document.getElementById("btn_kontrol").onclick = () => {
+        let currentStatus = document.getElementById("btn_kontrol").innerText.includes("MATIKAN");
+        db.update({ kontrol_manual: !currentStatus });
+    };
+
+    document.getElementById("btn_buzzer").onclick = () => {
+        let currentStatus = document.getElementById("btn_buzzer").innerText.includes("MATIKAN");
+        db.update({ buzzer_manual: !currentStatus });
+    };
+
+    // 3. Simpan Jadwal Waktu
+    document.getElementById("btn_save_time").onclick = () => {
+        const buka = document.getElementById("input_buka").value;
+        const tutup = document.getElementById("input_tutup").value;
+        db.update({
+            waktu_buka: buka,
+            waktu_tutup: tutup
+        }).then(() => alert("Jadwal berhasil diperbarui!"));
+    };
+</script>
 
 </body>
 </html>
