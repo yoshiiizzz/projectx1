@@ -1,145 +1,348 @@
+<?php
+// Set zona waktu (opsional, sesuaikan dengan lokasimu)
+date_default_timezone_set('Asia/Jakarta');
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Rain Detector IoT</title>
+    <title>Smart Clothesline Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     
     <style>
-        body { font-family: 'Roboto', sans-serif; background-color: #f4f7f6; }
-        .card { border-radius: 15px; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .status-val { font-size: 1.5rem; font-weight: bold; }
-        .header-bg { background: linear-gradient(135deg, #007bff, #00d4ff); color: white; padding: 20px; border-radius: 0 0 20px 20px; }
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            background-color: #e9ecef; 
+        }
+        .header-bg { 
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); 
+            color: white; 
+            padding: 30px 20px; 
+            border-radius: 0 0 30px 30px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .card { 
+            border-radius: 20px; 
+            border: none; 
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05); 
+            transition: transform 0.3s;
+            overflow: hidden;
+        }
+        .card:hover { transform: translateY(-5px); }
+        .icon-box { 
+            font-size: 3rem; 
+            margin-bottom: 10px; 
+        }
+        
+        /* Warna Dinamis Cuaca */
+        .weather-cerah { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; }
+        .weather-hujan { background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%); color: white; }
+        
+        /* Animasi Berdenyut */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .pulse-anim { animation: pulse 1s infinite; }
+        
+        .status-badge {
+            font-size: 1.2rem;
+            padding: 8px 15px;
+            border-radius: 30px;
+            font-weight: 600;
+        }
+        .btn-custom { border-radius: 12px; font-weight: 600; padding: 12px; }
+
+        /* Scrollbar untuk Tabel Log */
+        .table-container {
+            max-height: 350px;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
 
 <div class="header-bg text-center">
-    <h1>Rain Detector IoT</h1>
-    <p>Monitoring & Remote Control</p>
+    <h2><i class="fa-solid fa-house-signal"></i> Smart Clothesline IoT</h2>
+    <p class="mb-0 text-light opacity-75">Sistem Monitoring & Kontrol Jemuran Otomatis</p>
 </div>
 
-<div class="container mt-4">
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card p-4">
-                <h5 class="text-secondary">Monitoring</h5>
-                <hr>
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span>Kondisi Cuaca:</span>
-                    <span id="txt_hujan" class="status-val text-primary">Loading...</span>
-                </div>
-                <div class="d-flex justify-content-between align-items-center">
-                    <span>Status Jemuran:</span>
-                    <span id="txt_jemuran" class="status-val text-success">Loading...</span>
-                </div>
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-6 mb-3">
+            <div id="card_cuaca" class="card p-4 text-center weather-cerah h-100">
+                <div class="icon-box" id="icon_cuaca"><i class="fa-solid fa-sun"></i></div>
+                <h5 class="opacity-75">Kondisi Cuaca</h5>
+                <h3 id="txt_hujan" class="fw-bold mt-2">CERAH</h3>
             </div>
         </div>
 
-        <div class="col-md-6">
-            <div class="card p-4 text-center">
-                <h5 class="text-secondary">Kontrol Manual</h5>
-                <hr>
-                <div class="mb-3">
-                    <button id="btn_kontrol" class="btn btn-lg btn-outline-primary w-100">Toggle Jemuran</button>
-                    <small class="text-muted">Klik untuk Buka/Tutup secara paksa</small>
-                </div>
-                <div>
-                    <button id="btn_buzzer" class="btn btn-lg btn-outline-danger w-100">Bunyikan Buzzer</button>
+        <div class="col-md-6 mb-3">
+            <div class="card p-4 text-center h-100 d-flex flex-column justify-content-center">
+                <div class="icon-box text-secondary" id="icon_jemuran"><i class="fa-solid fa-door-open text-success"></i></div>
+                <h5 class="text-secondary">Posisi Jemuran</h5>
+                <div class="mt-2">
+                    <span id="txt_jemuran" class="badge bg-success status-badge">Terbuka</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card p-4">
-                <h5 class="text-secondary">Pengaturan Jadwal Otomatis</h5>
-                <hr>
-                <div class="row g-3 align-items-center">
-                    <div class="col-auto">
-                        <label>Waktu Buka:</label>
-                        <input type="time" id="input_buka" class="form-control">
+    <div class="row mb-4">
+        <div class="col-md-6 mb-3">
+            <div class="card p-4 h-100">
+                <h5 class="text-dark fw-bold mb-3"><i class="fa-solid fa-gamepad text-primary"></i> Pusat Kontrol</h5>
+                
+                <label class="text-secondary mb-1">Ambil Alih Manual (Servo)</label>
+                <button id="btn_kontrol" class="btn btn-outline-primary btn-custom w-100 mb-3 shadow-sm">
+                    <i class="fa-solid fa-toggle-off"></i> AKTIFKAN MODE MANUAL
+                </button>
+                
+                <label class="text-secondary mb-1">Buzzer / Alarm</label>
+                <button id="btn_buzzer" class="btn btn-outline-danger btn-custom w-100 shadow-sm">
+                    <i class="fa-solid fa-bell-slash"></i> BUNYIKAN BUZZER
+                </button>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <div class="card p-4 h-100">
+                <h5 class="text-dark fw-bold mb-3"><i class="fa-regular fa-clock text-warning"></i> Jadwal Operasional</h5>
+                
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <label class="form-label text-secondary small mb-1"><i class="fa-solid fa-sun"></i> Waktu Buka</label>
+                        <input type="time" id="input_buka" class="form-control form-control-lg bg-light">
                     </div>
-                    <div class="col-auto">
-                        <label>Waktu Tutup:</label>
-                        <input type="time" id="input_tutup" class="form-control">
+                    <div class="col-6">
+                        <label class="form-label text-secondary small mb-1"><i class="fa-solid fa-moon"></i> Waktu Tutup</label>
+                        <input type="time" id="input_tutup" class="form-control form-control-lg bg-light">
                     </div>
-                    <div class="col-auto mt-4">
-                        <button id="btn_save_time" class="btn btn-success">Simpan Jadwal</button>
-                    </div>
+                </div>
+                
+                <button id="btn_save_time" class="btn btn-success btn-custom w-100 mt-auto shadow-sm">
+                    <i class="fa-solid fa-floppy-disk"></i> Simpan Jadwal Baru
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-5">
+        <div class="col-md-7 mb-3">
+            <div class="card p-4 h-100">
+                <h5 class="text-dark fw-bold mb-3"><i class="fa-solid fa-chart-bar text-info"></i> Frekuensi Hujan</h5>
+                <canvas id="rainChart"></canvas>
+            </div>
+        </div>
+
+        <div class="col-md-5 mb-3">
+            <div class="card p-4 h-100">
+                <h5 class="text-dark fw-bold mb-3"><i class="fa-solid fa-list-ul text-secondary"></i> Riwayat Waktu Hujan</h5>
+                <div class="table-container">
+                    <table class="table table-hover table-sm">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>Pukul</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table_log">
+                            <tr><td colspan="2" class="text-center text-muted">Memuat data...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
+
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-    // --- GANTI DENGAN CONFIG FIREBASE KAMU ---
+    // 1. Konfigurasi Firebase Milikmu
     const firebaseConfig = {
-      apiKey: "AIzaSyCIJXQ7NSAPnLxRh34_zhcd5-q5buP_fKQ",
-      authDomain: "projectx1-72726.firebaseapp.com",
-      databaseURL: "https://projectx1-72726-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "projectx1-72726",
-      storageBucket: "projectx1-72726.firebasestorage.app",
-      messagingSenderId: "942733522841",
-      appId: "1:942733522841:web:e508544e166554ee274508"
+        apiKey: "AIzaSyCIJXQ7NSAPnLxRh34_zhcd5-q5buP_fKQ",
+        authDomain: "projectx1-72726.firebaseapp.com",
+        databaseURL: "https://projectx1-72726-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "projectx1-72726",
+        storageBucket: "projectx1-72726.firebasestorage.app",
+        messagingSenderId: "942733522841",
+        appId: "1:942733522841:web:e508544e166554ee274508"
     };
-    // ----------------------------------------
 
-    // Inisialisasi Firebase
     firebase.initializeApp(firebaseConfig);
-    const db = firebase.database().ref("Jemuran_Pintar");
+    const dbPintar = firebase.database().ref("Jemuran_Pintar");
+    const dbLog = firebase.database().ref("Jemuran_Log");
 
-    // 1. Ambil Data Real-time (Monitoring)
-    db.on('value', (snapshot) => {
+    // 2. LOGIKA KONTROL UTAMA & REAL-TIME
+    dbPintar.on('value', (snapshot) => {
         const data = snapshot.val();
-        
-        // Update UI Monitoring
-        document.getElementById("txt_hujan").innerText = data.kondisi_hujan ? "HUJAN" : "CERAH";
-        document.getElementById("txt_hujan").className = data.kondisi_hujan ? "status-val text-danger" : "status-val text-primary";
-        
-        document.getElementById("txt_jemuran").innerText = data.status_jemuran;
-        
-        // Update Warna Tombol berdasarkan kontrol_manual
-        const btnK = document.getElementById("btn_kontrol");
-        btnK.innerText = data.kontrol_manual ? "MATIKAN MANUAL (AUTO)" : "AKTIFKAN MANUAL";
-        btnK.className = data.kontrol_manual ? "btn btn-lg btn-primary w-100" : "btn btn-lg btn-outline-primary w-100";
+        if(data) {
+            // Cuaca
+            const cardCuaca = document.getElementById("card_cuaca");
+            const iconCuaca = document.getElementById("icon_cuaca");
+            const txtHujan = document.getElementById("txt_hujan");
 
-        const btnB = document.getElementById("btn_buzzer");
-        btnB.innerText = data.buzzer_manual ? "MATIKAN BUZZER" : "BUNYIKAN BUZZER";
-        btnB.className = data.buzzer_manual ? "btn btn-lg btn-danger w-100" : "btn btn-lg btn-outline-danger w-100";
+            if (data.kondisi_hujan) {
+                cardCuaca.className = "card p-4 text-center weather-hujan h-100";
+                iconCuaca.innerHTML = '<i class="fa-solid fa-cloud-showers-heavy pulse-anim"></i>';
+                txtHujan.innerText = "HUJAN TURUN";
+            } else {
+                cardCuaca.className = "card p-4 text-center weather-cerah h-100";
+                iconCuaca.innerHTML = '<i class="fa-solid fa-sun"></i>';
+                txtHujan.innerText = "CERAH";
+            }
+            
+            // Status Jemuran
+            const txtJemuran = document.getElementById("txt_jemuran");
+            const iconJemuran = document.getElementById("icon_jemuran");
+            txtJemuran.innerText = data.status_jemuran;
+            
+            if (data.status_jemuran.includes("Terbuka")) {
+                txtJemuran.className = "badge bg-success status-badge";
+                iconJemuran.innerHTML = '<i class="fa-solid fa-door-open text-success"></i>';
+            } else {
+                txtJemuran.className = "badge bg-secondary status-badge";
+                iconJemuran.innerHTML = '<i class="fa-solid fa-door-closed text-secondary"></i>';
+            }
+            
+            // Tombol Kontrol Servo
+            const btnK = document.getElementById("btn_kontrol");
+            if (data.kontrol_manual) {
+                btnK.innerHTML = '<i class="fa-solid fa-toggle-on"></i> MATIKAN MANUAL (KEMBALI AUTO)';
+                btnK.className = "btn btn-primary btn-custom w-100 mb-3 shadow pulse-anim";
+            } else {
+                btnK.innerHTML = '<i class="fa-solid fa-toggle-off"></i> AKTIFKAN MODE MANUAL';
+                btnK.className = "btn btn-outline-primary btn-custom w-100 mb-3 shadow-sm";
+            }
 
-        // Update Nilai Input Waktu
-        document.getElementById("input_buka").value = data.waktu_buka;
-        document.getElementById("input_tutup").value = data.waktu_tutup;
+            // Tombol Buzzer
+            const btnB = document.getElementById("btn_buzzer");
+            if (data.buzzer_manual) {
+                btnB.innerHTML = '<i class="fa-solid fa-bell pulse-anim"></i> MATIKAN BUZZER';
+                btnB.className = "btn btn-danger btn-custom w-100 shadow";
+            } else {
+                btnB.innerHTML = '<i class="fa-solid fa-bell-slash"></i> BUNYIKAN BUZZER';
+                btnB.className = "btn btn-outline-danger btn-custom w-100 shadow-sm";
+            }
+
+            // Update Jadwal
+            if (document.activeElement !== document.getElementById("input_buka")) {
+                document.getElementById("input_buka").value = data.waktu_buka;
+            }
+            if (document.activeElement !== document.getElementById("input_tutup")) {
+                document.getElementById("input_tutup").value = data.waktu_tutup;
+            }
+        }
     });
 
-    // 2. Kontrol Tombol
+    // Event Listeners Tombol Kontrol
     document.getElementById("btn_kontrol").onclick = () => {
-        let currentStatus = document.getElementById("btn_kontrol").innerText.includes("MATIKAN");
-        db.update({ kontrol_manual: !currentStatus });
+        let isManualActive = document.getElementById("btn_kontrol").innerText.includes("MATIKAN");
+        dbPintar.update({ kontrol_manual: !isManualActive });
     };
 
     document.getElementById("btn_buzzer").onclick = () => {
-        let currentStatus = document.getElementById("btn_buzzer").innerText.includes("MATIKAN");
-        db.update({ buzzer_manual: !currentStatus });
+        let isBuzzerActive = document.getElementById("btn_buzzer").innerText.includes("MATIKAN");
+        dbPintar.update({ buzzer_manual: !isBuzzerActive });
     };
 
-    // 3. Simpan Jadwal Waktu
     document.getElementById("btn_save_time").onclick = () => {
-        const buka = document.getElementById("input_buka").value;
-        const tutup = document.getElementById("input_tutup").value;
-        db.update({
-            waktu_buka: buka,
-            waktu_tutup: tutup
-        }).then(() => alert("Jadwal berhasil diperbarui!"));
+        const btnSave = document.getElementById("btn_save_time");
+        const originalText = btnSave.innerHTML;
+        btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
+        
+        dbPintar.update({
+            waktu_buka: document.getElementById("input_buka").value,
+            waktu_tutup: document.getElementById("input_tutup").value
+        }).then(() => {
+            setTimeout(() => {
+                btnSave.innerHTML = '<i class="fa-solid fa-check"></i> Tersimpan!';
+                btnSave.className = "btn btn-success btn-custom w-100 mt-auto shadow";
+                setTimeout(() => {
+                    btnSave.innerHTML = originalText;
+                    btnSave.className = "btn btn-success btn-custom w-100 mt-auto shadow-sm";
+                }, 2000);
+            }, 500);
+        });
     };
+
+    // -------------------------------------------------------------
+    // 3. LOGIKA GRAFIK DAN TABEL RIWAYAT HUJAN (UPGRADE)
+    // -------------------------------------------------------------
+    
+    // Setup Chart.js
+    const ctx = document.getElementById('rainChart').getContext('2d');
+    let rainChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: [], 
+            datasets: [{
+                label: 'Frekuensi Hujan Turun (Kali)',
+                data: [], 
+                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1,
+                borderRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1 } }
+            }
+        }
+    });
+
+    // Menarik Data Log dari Firebase
+    dbLog.on('value', (snapshot) => {
+        const tbody = document.getElementById('table_log');
+        tbody.innerHTML = ''; // Bersihkan tabel
+        
+        let logData = [];
+        let chartDataMap = {}; // Untuk menghitung jumlah per tanggal
+
+        snapshot.forEach((childSnapshot) => {
+            let item = childSnapshot.val();
+            logData.push(item);
+
+            // Menghitung untuk Grafik
+            if (chartDataMap[item.tanggal]) {
+                chartDataMap[item.tanggal]++;
+            } else {
+                chartDataMap[item.tanggal] = 1;
+            }
+        });
+
+        // Tampilkan Tabel (Urutan terbaru di atas)
+        logData.reverse();
+        if(logData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="2" class="text-center text-muted">Belum ada riwayat hujan</td></tr>';
+        } else {
+            logData.forEach(item => {
+                let tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><i class="fa-regular fa-calendar-days text-primary"></i> ${item.tanggal}</td>
+                    <td><i class="fa-regular fa-clock text-warning"></i> ${item.waktu}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Update Grafik
+        rainChart.data.labels = Object.keys(chartDataMap); // Set label dengan tanggal
+        rainChart.data.datasets.data = Object.values(chartDataMap); // Set data dengan jumlah
+        rainChart.update();
+    });
+
 </script>
 
 </body>
